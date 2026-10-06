@@ -48,16 +48,25 @@ export function createSteamClient({ loginSecure, debugDir = null, log = () => {}
     await writeFile(`${debugDir}/${name}`, body);
   }
 
-  async function request(url, init = {}, attempt = 1) {
-    const res = await fetch(url, { ...init, headers: { ...headers, ...init.headers }, redirect: 'follow' });
+  /** Redirects are followed by hand so the cookie is only ever sent to the store, never to wherever Steam points. */
+  async function request(url, init = {}, attempt = 1, hops = 0) {
+    const method = init.method ?? 'GET';
+    const res = await fetch(url, { ...init, headers: { ...headers, ...init.headers }, redirect: 'manual' });
     if (res.status === 429 && attempt < 4) {
       const wait = 5000 * attempt;
       log(`Rate limited, waiting ${wait / 1000}s…`);
       await sleep(wait);
-      return request(url, init, attempt + 1);
+      return request(url, init, attempt + 1, hops);
     }
-    if (/\/login/.test(res.url)) throw new NotLoggedInError();
-    if (!res.ok) throw new Error(`${init.method ?? 'GET'} ${url} failed with HTTP ${res.status}`);
+    if (res.status >= 300 && res.status < 400) {
+      const next = new URL(res.headers.get('location') ?? '', url);
+      if (/\/login/.test(next.pathname) || next.hostname.startsWith('login.')) throw new NotLoggedInError();
+      if (next.origin !== STORE || method !== 'GET' || hops >= 5) {
+        throw new Error(`${method} ${url} redirected to ${next.origin}${next.pathname}, not following it with your cookie`);
+      }
+      return request(next.href, init, attempt, hops + 1);
+    }
+    if (!res.ok) throw new Error(`${method} ${url} failed with HTTP ${res.status}`);
     return res;
   }
 
