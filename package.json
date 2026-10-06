@@ -1,0 +1,26 @@
+{
+  "name": "steam-purchases",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A local dashboard for your Steam account: every game you own, when you got it, what you paid, and CSV export.",
+  "type": "module",
+  "engines": {
+    "node": ">=20.6"
+  },
+  "scripts": {
+    "fetch": "node --env-file=.env fetch.js",
+    "fetch:debug": "node --env-file=.env fetch.js --debug",
+    "start": "node server.js",
+    "export": "node export.js",
+    "test": "node test/parse.test.js && node test/dashboard.test.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0"
+  },
+  "keywords": [
+    "steam",
+    "purchase-history",
+    "dashboard",
+    "csv-export"
+  ]
+}
