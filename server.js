@@ -16,6 +16,31 @@ const TYPES = {
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.ico': 'image/x-icon',
+  '.woff2': 'font/woff2',
+};
+
+// A web page can point its own domain at 127.0.0.1 (DNS rebinding) and then read this server as same-origin.
+// The browser still sends that domain in Host, so anything but our own address is refused.
+const ALLOWED_HOSTS = new Set([`localhost:${PORT}`, `127.0.0.1:${PORT}`]);
+
+// Fonts, scripts and styles are all local; only Steam's image CDN is allowed from outside.
+// Inline style attributes stay allowed because charts size their bars with them.
+const SECURITY_HEADERS = {
+  'Content-Security-Policy': [
+    "default-src 'none'",
+    "script-src 'self'",
+    "style-src 'self'",
+    "style-src-attr 'unsafe-inline'",
+    "img-src 'self' data: https://*.steamstatic.com",
+    "font-src 'self'",
+    "connect-src 'self'",
+    "base-uri 'none'",
+    "form-action 'none'",
+    "frame-ancestors 'none'",
+  ].join('; '),
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'no-referrer',
+  'Cross-Origin-Resource-Policy': 'same-origin',
 };
 
 /** Only data/library.json and files under public/ are reachable. */
@@ -27,6 +52,7 @@ function fileFor(pathname) {
 
 http
   .createServer(async (req, res) => {
+    if (!ALLOWED_HOSTS.has(req.headers.host)) return res.writeHead(403).end('Forbidden');
     let pathname;
     try {
       pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
@@ -38,7 +64,7 @@ http
     if (!type) return res.writeHead(404).end('Not found');
     try {
       const body = await readFile(file);
-      res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-store' }).end(body);
+      res.writeHead(200, { ...SECURITY_HEADERS, 'Content-Type': type, 'Cache-Control': 'no-store' }).end(body);
     } catch {
       res.writeHead(404).end('Not found');
     }
