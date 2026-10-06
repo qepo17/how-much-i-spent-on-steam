@@ -230,6 +230,11 @@ select:hover, input[type="search"]:hover { border-color: var(--line-strong); }
 .topbar-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; gap: 16px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font: 700 17px var(--display); letter-spacing: -0.01em; }
 .brand-mark { width: 30px; height: 30px; }
+.brand-name { white-space: nowrap; }
+@media (max-width: 480px) {
+  .brand-tail, .btn-label { display: none; }
+  .topbar .btn.primary { width: 40px; padding: 0; justify-content: center; }
+}
 .topbar-actions { display: flex; align-items: center; gap: 10px; }
 .synced { color: var(--muted); font-size: 13px; }
 .synced::before {

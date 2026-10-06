@@ -5,7 +5,7 @@ import { extractHistoryCursor } from './parse.js';
 const STORE = 'https://store.steampowered.com';
 const COMMUNITY = 'https://steamcommunity.com';
 const API = 'https://api.steampowered.com';
-const USER_AGENT = 'Mozilla/5.0 (steam-purchases personal script)';
+const USER_AGENT = 'Mozilla/5.0 (how-much-i-spent-on-steam personal script)';
 const PAGE_DELAY_MS = 1200;
 const MAX_PAGES = 300;
 const STORE_ITEMS_BATCH = 100;

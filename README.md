@@ -1,4 +1,6 @@
-# steam-purchases
+# how-much-i-spent-on-steam
+
+The shame of my profile, in one dashboard.
 
 A local dashboard for your own Steam account: every game you own, when you got it, what you paid, and where the money went. Exports to CSV.
 

@@ -1,5 +1,5 @@
 {
-  "name": "steam-purchases",
+  "name": "how-much-i-spent-on-steam",
   "version": "0.1.0",
   "private": true,
   "description": "A local dashboard for your Steam account: every game you own, when you got it, what you paid, and CSV export.",

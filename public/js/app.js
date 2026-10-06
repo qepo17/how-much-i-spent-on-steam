@@ -85,7 +85,7 @@ function renderHero({ animate = true } = {}) {
   }
 
   if (profile) {
-    document.title = `${profile.name} · Steam Purchases`;
+    document.title = `${profile.name} · How much I spent on Steam`;
     $('persona').textContent = profile.name;
     const avatar = $('avatar');
     avatar.href = profile.profileUrl;
