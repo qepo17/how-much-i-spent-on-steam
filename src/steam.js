@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
-import { extractHistoryCursor } from './parse.js';
+import { extractHistoryCursor, extractLicensesNextPage } from './parse.js';
 
 const STORE = 'https://store.steampowered.com';
 const COMMUNITY = 'https://steamcommunity.com';
@@ -77,8 +77,21 @@ export function createSteamClient({ loginSecure, debugDir = null, log = () => {}
     return html;
   }
 
+  /** Returns the HTML of every licenses page, following the "Next" link. */
   async function fetchLicensesHtml() {
-    return getPage('/account/licenses/?l=english', 'licenses.html');
+    const pages = [await getPage('/account/licenses/?l=english', 'licenses-0.html')];
+    let next = extractLicensesNextPage(pages[0]);
+
+    for (let page = 1; next && page < MAX_PAGES; page++) {
+      await sleep(PAGE_DELAY_MS);
+      log(`Loading licenses page ${page + 1}…`);
+      const query = new URLSearchParams(next);
+      query.set('l', 'english');
+      pages.push(await getPage(`/account/licenses/?${query}`, `licenses-${page}.html`));
+      next = extractLicensesNextPage(pages[page]);
+    }
+
+    return pages;
   }
 
   /** Returns the first page's HTML followed by each AJAX chunk's row HTML. */
