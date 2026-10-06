@@ -120,6 +120,12 @@ export function parseLicenses(html) {
   return licenses;
 }
 
+/** The licenses page shows 100 at a time; its "Next" link is "?continuationToken=…&offset=100". Null on the last page. */
+export function extractLicensesNextPage(html) {
+  const href = cheerio.load(html)('a.license_paginator_next').attr('href');
+  return href?.startsWith('?') ? href : null;
+}
+
 /** The first page embeds the pagination cursor in an inline script. */
 export function extractHistoryCursor(html) {
   const m = html.match(/g_historyCursor\s*=\s*(\{[\s\S]*?\})\s*;/);

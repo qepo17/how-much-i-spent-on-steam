@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { parseSteamDate, parseMoney, parseHistoryRows, parseLicenses, extractHistoryCursor } from '../src/parse.js';
+import { parseSteamDate, parseMoney, parseHistoryRows, parseLicenses, extractHistoryCursor, extractLicensesNextPage } from '../src/parse.js';
 import { merge, normalizeName } from '../src/merge.js';
 
 const row = (date, items, type, payment, total, transid) => `
@@ -63,6 +63,11 @@ assert.equal(licenses.length, 5);
 assert.equal(licenses[4].name, 'Dota 2');
 assert.equal(licenses[4].packageId, '12345');
 assert.equal(licenses[4].source, 'Complimentary');
+assert.equal(extractLicensesNextPage(licensesPage), null);
+assert.equal(
+  extractLicensesNextPage('<div class="license_paginator_ctn"><a class="license_paginator_next" href="?continuationToken=1668512976:577&amp;offset=100">Next</a></div>'),
+  '?continuationToken=1668512976:577&offset=100'
+);
 
 // Merge
 const { games, unlinkedPurchases } = merge(licenses, history);

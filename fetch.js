@@ -58,7 +58,7 @@ async function loadPlaytimes() {
 
 try {
   console.log('Loading licenses…');
-  const licenses = parseLicenses(await steam.fetchLicensesHtml());
+  const licenses = (await steam.fetchLicensesHtml()).flatMap(parseLicenses);
   console.log(`  ${licenses.length} licenses`);
 
   console.log('Loading purchase history…');
