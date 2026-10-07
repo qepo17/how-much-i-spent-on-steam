@@ -1,6 +1,7 @@
 import { esc, money, totalAsShown, maskAmounts, setAmountsHidden, formatDate, timeAgo, yearsSince, hours, plural, hueFor, initials } from './format.js';
-import { summarize, purchaseCategory, costPerHour, HISTORY_CATEGORIES } from './stats.js';
+import { summarize, purchaseCategory, costPerHour, isBarelyPlayed, BARELY_PLAYED_MINUTES, HISTORY_CATEGORIES } from './stats.js';
 import { yearChart, heatmap, stackChart, rankList } from './charts.js';
+import { activitiesIn, pricierThan } from './activities.js';
 import { BOM, gamesCsv, historyCsv, priceKind } from './csv.js';
 
 const $ = (id) => document.getElementById(id);
@@ -15,7 +16,7 @@ const store = {
 const state = {
   data: null,
   summary: null,
-  q: '', source: '', price: 'all', tag: '', year: null, month: null,
+  q: '', source: '', price: 'all', tag: '', year: null, month: null, barely: false,
   sort: 'recent',
   view: store.get('view') === 'table' ? 'table' : 'grid',
   hideAmounts: store.get('hideAmounts') === '1',
@@ -33,7 +34,16 @@ const ICONS = {
   calendar: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
   refund: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
   clock: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
+  gamepad: '<path d="M7 8h10a5 5 0 0 1 4.9 6l-.4 1.9a2.6 2.6 0 0 1-4.6 1L15 15H9l-1.9 1.9a2.6 2.6 0 0 1-4.6-1L2.1 14A5 5 0 0 1 7 8z"/><path d="M7 10.5v3M5.5 12h3M15.5 11h.01M17.5 13h.01"/>',
+  book: '<path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 20.5A2.5 2.5 0 0 1 7.5 18H19v3H7.5"/>',
+  cafe: '<path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 11h1.5a2.5 2.5 0 0 1 0 5H17M8.5 3.5v2.5M12.5 3.5v2.5"/>',
+  movie: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7.5 5v14M16.5 5v14M3 9.5h4.5M3 14.5h4.5M16.5 9.5H21M16.5 14.5H21"/>',
+  themePark: '<circle cx="12" cy="10" r="6.5"/><path d="M12 3.5v13M5.5 10h13M7.4 5.4l9.2 9.2M16.6 5.4l-9.2 9.2M8.5 21l3.5-11 3.5 11M6 21h12"/>',
+  dinner: '<path d="M7 3v7M4.5 3v4.5a2.5 2.5 0 0 0 5 0V3M7 10v11M18 21V3c-2.5 1.5-3.5 4.5-3.5 8.5H18"/>',
+  concert: '<path d="M9 18V5.5l11-2.5v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>',
 };
+
+const icon = (name) => `<span class="kpi-icon"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg></span>`;
 
 /** Cover art with a generated fallback for games Steam has no art for. */
 function art(src, name, { wide = false, label = false } = {}) {
@@ -133,9 +143,9 @@ function countUp(el, target, currency) {
   requestAnimationFrame(frame);
 }
 
-function kpi(icon, label, value, sub) {
+function kpi(name, label, value, sub) {
   return `<article class="kpi">
-    <p class="kpi-label"><span class="kpi-icon"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[icon]}</svg></span>${esc(label)}</p>
+    <p class="kpi-label">${icon(name)}${esc(label)}</p>
     <p class="kpi-value">${value}</p>
     <p class="kpi-sub">${sub}</p>
   </article>`;
@@ -171,7 +181,7 @@ function renderKpis() {
   if (hasPlaytime) {
     const h = s.playMinutes / 60;
     tiles.push(kpi('clock', 'Hours played', Math.round(h).toLocaleString(),
-      h ? `≈ <strong>${esc(money(Math.round(s.total / h), cur))}</strong> per hour of play` : 'no playtime recorded'));
+      s.perHour != null ? `≈ <strong>${esc(money(Math.round(s.perHour), cur))}</strong> per hour of play` : 'no playtime in games you bought'));
   }
 
   $('kpis').innerHTML = tiles.join('');
@@ -223,6 +233,50 @@ function renderTags() {
   );
 }
 
+/** A cost per hour: whole units for big currencies, cents for small ones. */
+const rate = (amount, currency) => money(amount >= 100 ? Math.round(amount) : Math.round(amount * 100) / 100, currency);
+
+/** "4×", masked along with amounts, since the ratio and a known ticket price give the rate away. */
+const times = (ratio) => (state.hideAmounts ? '•×' : `${(ratio >= 10 ? Math.round(ratio) : Math.round(ratio * 10) / 10).toLocaleString()}×`);
+
+const costsMore = (c) => `${c.name} costs ${c.ratio < 1.1 ? 'about the same' : `${times(c.ratio)} as much`}`;
+
+function renderValue() {
+  const s = state.summary;
+  const cur = s.currency;
+  const activities = activitiesIn(cur);
+  const wrap = $('value-wrap');
+  wrap.hidden = !state.data.hasPlaytime || s.perHour == null || !activities.length;
+  if (wrap.hidden) return;
+
+  const anchor = pricierThan(s.perHour, cur);
+  const top = activities.at(-1);
+  let line = 'Pricier per hour than all of these, for now.';
+  if (anchor) {
+    line = `${esc(costsMore(anchor))}.`;
+    if (top.id !== anchor.id) line += ` ${esc(top.name)}, ${esc(times(top.perHour / s.perHour))}.`;
+  }
+
+  $('value').innerHTML = `
+    <div class="value-you">
+      <p class="value-label">${icon('gamepad')}Your Steam games</p>
+      <p class="value-number">${esc(rate(s.perHour, cur))}<span> per hour</span></p>
+      <p class="value-detail">${esc(money(Math.round(s.total), cur))} over ${esc(plural(Math.round(s.paidPlayMinutes / 60), 'hour'))}</p>
+      <p class="value-line">${line}</p>
+      <p class="value-note">Every hour you play brings it down.</p>
+    </div>
+    <ul class="value-cards">${activities
+      .map(
+        (a) => `<li class="value-card">
+          <p class="value-label">${icon(a.id)}<span class="value-x">${esc(times(a.perHour / s.perHour))}<small>your rate</small></span></p>
+          <p class="value-name">${esc(a.name)}</p>
+          <p class="value-rate">${esc(rate(a.perHour, cur))}<span>/h</span></p>
+          <p class="value-detail">${esc(money(a.price, cur))} ${esc(a.item)}, ${a.hours.toLocaleString()}\u00a0h</p>
+        </li>`
+      )
+      .join('')}</ul>`;
+}
+
 function renderFame() {
   const byPurchase = new Map();
   for (const g of state.data.games) if (g.purchase?.id && !byPurchase.has(g.purchase.id)) byPurchase.set(g.purchase.id, g);
@@ -240,6 +294,40 @@ function renderFame() {
         <span class="fame-meta">
           <span class="fame-price">${esc(money(p.total.amount, p.total.currency))}</span>
           <span class="fame-name">${esc(name)} · ${esc(formatDate(p.date, p.dateRaw, { month: 'short', year: 'numeric' }))}</span>
+        </span>
+      </button></li>`;
+    })
+    .join('');
+}
+
+function renderShelf() {
+  const { games, spent } = state.summary.barelyPlayed;
+  const wrap = $('shelf-wrap');
+  wrap.hidden = !state.data.hasPlaytime || !games.length;
+  if (wrap.hidden) return;
+
+  const h = BARELY_PLAYED_MINUTES / 60;
+  const bundled = games.filter((g) => g.price == null).length;
+  const priced = games.length - bundled;
+  const sub = [];
+  if (priced) sub.push(`${money(Math.round(spent), state.summary.currency)} on ${plural(priced, 'game')} you gave less than ${h} hours.`);
+  if (bundled) sub.push(priced ? `${bundled} more came in bundles.` : `${plural(bundled, 'game')} from bundles you gave less than ${h} hours.`);
+  sub.push(`Play one for ${h} hours and it's off the list.`);
+  $('shelf-sub').textContent = sub.join(' ');
+  $('shelf-all').textContent = `See all ${games.length.toLocaleString()} ${games.length === 1 ? 'regret' : 'regrets'}`;
+
+  $('shelf').innerHTML = games
+    .slice(0, 8)
+    .map((g) => {
+      const never = !g.playtimeMinutes;
+      const played = never ? 'Never launched' : `Only ${hours(g.playtimeMinutes)}`;
+      const price = priceKind(g) === 'bundle' ? 'In a bundle' : priceLabel(g);
+      return `<li><button type="button" class="fame-card" data-game="${state.data.games.indexOf(g)}" aria-label="${esc(`${g.name}, ${price}, ${played}`)}">
+        ${art(g.app?.art.header, g.name)}
+        <span class="shelf-time${never ? ' never' : ''}">${esc(played)}</span>
+        <span class="fame-meta">
+          <span class="fame-price">${esc(price)}</span>
+          <span class="fame-name">${esc(g.name)} · bought ${esc(formatDate(g.acquired, g.acquiredRaw, { month: 'short', year: 'numeric' }))}</span>
         </span>
       </button></li>`;
     })
@@ -277,7 +365,8 @@ function filteredGames() {
         (state.price === 'all' || priceKind(g) === state.price) &&
         (!state.tag || g.app?.tags.includes(state.tag)) &&
         (!state.year || g.acquired?.startsWith(state.year)) &&
-        (!state.month || g.acquired?.startsWith(state.month))
+        (!state.month || g.acquired?.startsWith(state.month)) &&
+        (!state.barely || isBarelyPlayed(g))
     )
     .sort((a, b) => SORTS[state.sort](a, b) || cmp(a.name, b.name));
 }
@@ -344,6 +433,7 @@ function renderActiveFilters() {
   if (state.year) chips.push(['year', `Year ${state.year}`]);
   if (state.month) chips.push(['month', formatDate(`${state.month}-01`, '', { month: 'long', year: 'numeric' })]);
   if (state.tag) chips.push(['tag', `Tag: ${state.tag}`]);
+  if (state.barely) chips.push(['barely', `Played under ${BARELY_PLAYED_MINUTES / 60} h`]);
   $('active-filters').innerHTML = chips
     .map(([key, label]) => `<button type="button" class="chip removable" data-clear="${key}" aria-label="Remove filter ${esc(label)}">${esc(label)}</button>`)
     .join('');
@@ -442,13 +532,14 @@ function openGame(idx) {
   const app = g.app;
   const kind = priceKind(g);
   const cph = costPerHour(g);
+  const pricier = cph != null ? pricierThan(cph, g.currency) : null;
   const facts = [
     ['Paid', kind === 'exact' ? money(g.price, g.currency) : kind === 'bundle' ? 'In a bundle' : 'Nothing', kind === 'bundle' ? `of ${money(g.purchase.total?.amount, g.purchase.total?.currency)}` : ''],
     ['Acquired', formatDate(g.acquired, g.acquiredRaw), g.acquired ? timeAgo(g.acquired) : ''],
     ['Source', g.source ?? '–', ''],
     app?.released ? ['Released', formatDate(app.released), ''] : null,
     g.playtimeMinutes != null ? ['Played', hours(g.playtimeMinutes) || '0 h', g.lastPlayed ? `last ${formatDate(g.lastPlayed)}` : ''] : null,
-    cph != null ? ['Cost per hour', money(Math.round(cph * 100) / 100, g.currency), ''] : null,
+    cph != null ? ['Cost per hour', rate(cph, g.currency), pricier ? costsMore(pricier) : ''] : null,
   ].filter(Boolean);
 
   const p = g.purchase;
@@ -585,7 +676,9 @@ function setupPrivacy() {
     renderKpis();
     renderCharts();
     renderBreakdowns();
+    renderValue();
     renderFame();
+    renderShelf();
     renderLibrary();
     renderHistory();
     if ($('drawer').open) openGame(state.openGame);
@@ -719,9 +812,18 @@ function bindEvents(selectTab) {
     const g = e.target.closest('[data-game]');
     if (g) openGame(Number(g.dataset.game));
   });
-  $('fame').addEventListener('click', (e) => {
-    const g = e.target.closest('[data-game]');
-    if (g) openGame(Number(g.dataset.game));
+  for (const row of [$('fame'), $('shelf')]) {
+    row.addEventListener('click', (e) => {
+      const g = e.target.closest('[data-game]');
+      if (g) openGame(Number(g.dataset.game));
+    });
+  }
+  $('shelf-all').addEventListener('click', () => {
+    state.barely = true;
+    state.sort = 'price-desc'; // same order as the row above
+    $('sort').value = state.sort;
+    refresh();
+    scrollToLibrary();
   });
 
   $('hq').addEventListener('input', (e) => { state.hq = e.target.value; state.hlimit = PAGE; renderHistory(); });
@@ -788,7 +890,9 @@ async function main() {
   renderKpis();
   renderCharts();
   renderBreakdowns();
+  renderValue();
   renderFame();
+  renderShelf();
   renderLibrary();
   renderHistoryCats();
   renderHistory();

@@ -5,7 +5,8 @@ import { createAppMatcher, enrichGames, toAppInfo } from '../src/enrich.js';
 import { normalizeName } from '../src/merge.js';
 import { gamesCsv, historyCsv, toCsv } from '../public/js/csv.js';
 import { money, maskAmounts, totalAsShown, setAmountsHidden } from '../public/js/format.js';
-import { summarize, paymentMethod, purchaseCategory, costPerHour } from '../public/js/stats.js';
+import { summarize, paymentMethod, purchaseCategory, costPerHour, isBarelyPlayed } from '../public/js/stats.js';
+import { activitiesIn, pricierThan } from '../public/js/activities.js';
 
 // SteamID from the login cookie
 assert.equal(steamIdFromCookie('76561198000000001%7C%7CeyJhbGciOi'), '76561198000000001');
@@ -119,6 +120,18 @@ assert.deepEqual(s.ytd, { year: 2025, amount: 300, previous: 300 });
 assert.deepEqual(s.payments.map((p) => p.name), ['GoPay', 'Wallet + Visa']);
 assert.equal(s.avgPrice, 108999);
 assert.deepEqual(s.tags.map((t) => t.name), ['Action', 'Roguelike']);
+assert.equal(s.paidPlayMinutes, 600, 'only games you paid for');
+assert.equal(s.perHour, 60, 'Rp 600 over 10 h');
+assert.equal(summarize({ games: [{ purchase: {}, playtimeMinutes: 30 }], history }).perHour, null, 'under an hour is too noisy');
+
+// What an hour of fun costs
+assert.deepEqual(activitiesIn('Rp').map((a) => [a.id, a.perHour]),
+  [['book', 12500], ['movie', 25000], ['cafe', 26700], ['themePark', 34400], ['dinner', 66700], ['concert', 333000]]);
+assert.deepEqual(activitiesIn('¥'), [], 'no price list, no comparison');
+assert.equal(pricierThan(6000, 'Rp').id, 'movie', 'the movies when they cost more');
+assert.equal(pricierThan(6000, 'Rp').ratio, 25000 / 6000);
+assert.equal(pricierThan(30000, 'Rp').id, 'themePark', 'else the next one up');
+assert.equal(pricierThan(500000, 'Rp'), null);
 
 assert.equal(purchaseCategory({ type: '12 Market Transactions' }), 'market');
 assert.equal(purchaseCategory({ type: 'Gift Purchase' }), 'gift');
@@ -128,6 +141,23 @@ assert.equal(paymentMethod('$5.00 Wallet $4.99 Visa **1234'), 'Wallet + Visa **1
 assert.equal(paymentMethod('Visa **08'), 'Visa **08');
 assert.equal(costPerHour(sampleGames[0]), 10899.9);
 assert.equal(costPerHour({ price: 100, playtimeMinutes: 30 }), null, 'under an hour is too noisy');
+
+// Bought, barely played
+const shelfGames = [
+  { name: 'Unplayed', acquired: '2024-01-01', price: 500, currency: 'Rp', purchase: { id: 'a' }, playtimeMinutes: 0 },
+  { name: 'Tried once', acquired: '2024-02-01', price: 900, currency: 'Rp', purchase: { id: 'b' }, playtimeMinutes: 179 },
+  { name: 'From a bundle', acquired: '2024-03-01', price: null, currency: 'Rp', purchase: { id: 'c' }, playtimeMinutes: 30 },
+  { name: 'Other currency', acquired: '2024-04-01', price: 5, currency: '$', purchase: { id: 'd' }, playtimeMinutes: 10 },
+  { name: 'Three hours', acquired: '2024-05-01', price: 100, currency: 'Rp', purchase: { id: 'e' }, playtimeMinutes: 180 },
+  { name: 'Free', acquired: '2024-06-01', price: null, currency: null, purchase: null, playtimeMinutes: 0 },
+  { name: 'DLC', acquired: '2024-07-01', price: 200, currency: 'Rp', purchase: { id: 'f' }, playtimeMinutes: null },
+];
+const shelf = summarize({ games: shelfGames, history }).barelyPlayed;
+assert.deepEqual(shelf.games.map((g) => g.name), ['Tried once', 'Unplayed', 'Other currency', 'From a bundle'], 'priciest first, bundles last');
+assert.equal(shelf.spent, 1400, 'only exact prices in the main currency');
+assert.equal(isBarelyPlayed({ purchase: {}, playtimeMinutes: 180 }), false, '3 h is enough');
+assert.equal(isBarelyPlayed({ purchase: null, playtimeMinutes: 0 }), false, 'free games are not on the list');
+assert.equal(isBarelyPlayed({ purchase: {}, playtimeMinutes: null }), false, 'no playtime on record is not the same as unplayed');
 
 assert.match(historyCsv(history.slice(0, 1)), /^Date,Items,Type,Payment,Total,Currency,Total as shown,Refunded,Transaction ID\r\n2024-01-13,Hades,Purchase,GoPay,100,Rp,,no,1\r\n$/);
 

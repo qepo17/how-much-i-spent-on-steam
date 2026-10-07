@@ -546,6 +546,40 @@ button.rank:hover { background: var(--accent-wash); }
 .rank .bar { height: 100%; border-radius: 3px; background: var(--series-1); transform-origin: left; animation: widen 0.9s var(--ease) both; animation-delay: calc(var(--i) * 50ms); }
 .empty-note { color: var(--muted); font-size: 14px; margin: 0; }
 
+/* ---------- What an hour of fun costs ---------- */
+.value { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 16px; }
+.value-you, .value-card {
+  margin: 0; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow);
+}
+.value-you {
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 26px;
+  background: linear-gradient(160deg, var(--accent-wash), transparent 70%), var(--surface);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.value-label { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.value-number { margin: 14px 0 0; font: 700 44px/1.05 var(--display); letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.value-number span, .value-rate span { font-size: 15px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+.value-detail { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+.value-line { margin: 18px 0 0; font-size: 17px; line-height: 1.45; color: var(--ink-2); }
+.value-note { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+.value-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.value-card { padding: 18px 18px 16px; }
+.value-card .value-label { justify-content: space-between; align-items: flex-start; }
+.value-x { font: 700 26px/1 var(--display); color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+.value-x small { display: block; margin-top: 3px; font: 500 11px var(--body); color: var(--muted); }
+.value-name { margin: 14px 0 0; font-weight: 600; font-size: 15px; }
+.value-rate { margin: 2px 0 0; font: 700 18px var(--display); font-variant-numeric: tabular-nums; }
+.value-rate span { font-size: 13px; }
+@media (max-width: 1080px) { .value { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 720px) {
+  .value-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .value-card { padding: 14px; }
+  .value-number { font-size: 36px; }
+  .value-x { font-size: 22px; }
+}
+
 /* ---------- Biggest purchases ---------- */
 .fame { margin: 36px 0 8px; }
 .section-head { margin-bottom: 16px; }
@@ -581,6 +615,19 @@ button.rank:hover { background: var(--accent-wash); }
 .fame-meta { position: absolute; left: 14px; right: 14px; bottom: 12px; }
 .fame-price { display: block; font: 700 22px var(--display); }
 .fame-name { display: block; font-size: 13px; color: rgba(255, 255, 255, 0.82); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- Bought, barely played ---------- */
+.section-head.split { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.shelf-time {
+  position: absolute; left: 12px; top: 12px;
+  padding: 4px 9px; border-radius: 8px;
+  font: 700 12px var(--display);
+  background: rgba(6, 10, 20, 0.78); color: #fff;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+/* Cards sit on dark art in both themes, so the colors are fixed. */
+.shelf-time.never { background: #ff8a7a; color: #1a0703; border: 0; }
 
 /* ---------- Tabs & toolbar ---------- */
 .browser { margin-top: 28px; }
