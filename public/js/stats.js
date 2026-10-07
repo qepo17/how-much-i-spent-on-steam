@@ -66,6 +66,11 @@ function spentUntilDayOfYear(purchases, year, today) {
   return purchases.filter((p) => p.date.startsWith(String(year)) && p.date <= cutoff).reduce((s, p) => s + p.total.amount, 0);
 }
 
+export const BARELY_PLAYED_MINUTES = 180;
+
+/** Paid for, but under 3 hours on Steam's clock. Games Steam reports no playtime for (DLC, unmatched names) don't count. */
+export const isBarelyPlayed = (g) => g.purchase != null && g.playtimeMinutes != null && g.playtimeMinutes < BARELY_PLAYED_MINUTES;
+
 export function summarize({ games = [], history = [] }, today = new Date()) {
   const dated = history.filter(isGamePurchase).filter((p) => p.date && p.total?.amount != null);
   const currency = mostCommon(dated.map((p) => p.total.currency));
@@ -84,6 +89,10 @@ export function summarize({ games = [], history = [] }, today = new Date()) {
   const priced = games.filter((g) => g.price != null && g.currency === currency);
   const year = today.getFullYear();
   const total = purchases.reduce((s, p) => s + p.total.amount, 0);
+  // Most expensive first: that's the money sitting on the shelf. Bundle games have no price, so they go last.
+  const barelyPlayed = games
+    .filter(isBarelyPlayed)
+    .sort((a, b) => (b.price ?? -1) - (a.price ?? -1) || (b.acquired ?? '').localeCompare(a.acquired ?? ''));
 
   return {
     currency,
@@ -108,6 +117,10 @@ export function summarize({ games = [], history = [] }, today = new Date()) {
     sources: countBy(games.map((g) => g.source ?? 'Unknown')),
     tags: countBy(games.flatMap((g) => g.app?.tags ?? [])),
     playMinutes: games.reduce((s, g) => s + (g.playtimeMinutes ?? 0), 0),
+    barelyPlayed: {
+      games: barelyPlayed,
+      spent: barelyPlayed.filter((g) => g.price != null && g.currency === currency).reduce((s, g) => s + g.price, 0),
+    },
   };
 }
 

@@ -1,10 +1,11 @@
 import { esc, money, totalAsShown, maskAmounts, setAmountsHidden, formatDate, timeAgo, yearsSince, hours, plural, hueFor, initials } from './format.js';
-import { summarize, purchaseCategory, costPerHour, HISTORY_CATEGORIES } from './stats.js';
+import { summarize, purchaseCategory, costPerHour, isBarelyPlayed, BARELY_PLAYED_MINUTES, HISTORY_CATEGORIES } from './stats.js';
 import { yearChart, heatmap, stackChart, rankList } from './charts.js';
 import { BOM, gamesCsv, historyCsv, priceKind } from './csv.js';
 
 const $ = (id) => document.getElementById(id);
 const PAGE = 120;
+const UNDER_THRESHOLD = `under ${BARELY_PLAYED_MINUTES / 60} h`;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const store = {
@@ -15,7 +16,7 @@ const store = {
 const state = {
   data: null,
   summary: null,
-  q: '', source: '', price: 'all', tag: '', year: null, month: null,
+  q: '', source: '', price: 'all', tag: '', year: null, month: null, barely: false,
   sort: 'recent',
   view: store.get('view') === 'table' ? 'table' : 'grid',
   hideAmounts: store.get('hideAmounts') === '1',
@@ -246,6 +247,37 @@ function renderFame() {
     .join('');
 }
 
+function renderShelf() {
+  const { games, spent } = state.summary.barelyPlayed;
+  const wrap = $('shelf-wrap');
+  wrap.hidden = !state.data.hasPlaytime || !games.length;
+  if (wrap.hidden) return;
+
+  const bundled = games.filter((g) => g.price == null).length;
+  let sub = `${plural(games.length, 'game')} you paid for with ${UNDER_THRESHOLD} played`;
+  if (spent) sub += ` · ${money(Math.round(spent), state.summary.currency)} spent`;
+  if (bundled) sub += `, plus ${bundled} from ${bundled === 1 ? 'a bundle' : 'bundles'}`;
+  $('shelf-sub').textContent = sub;
+  $('shelf-all').textContent = `See all ${games.length.toLocaleString()} in library`;
+
+  $('shelf').innerHTML = games
+    .slice(0, 8)
+    .map((g) => {
+      const never = !g.playtimeMinutes;
+      const played = never ? 'Never played' : `${hours(g.playtimeMinutes)} played`;
+      const price = priceKind(g) === 'bundle' ? 'In a bundle' : priceLabel(g);
+      return `<li><button type="button" class="fame-card" data-game="${state.data.games.indexOf(g)}" aria-label="${esc(`${g.name}, ${price}, ${played}`)}">
+        ${art(g.app?.art.header, g.name)}
+        <span class="shelf-time${never ? ' never' : ''}">${esc(played)}</span>
+        <span class="fame-meta">
+          <span class="fame-price">${esc(price)}</span>
+          <span class="fame-name">${esc(g.name)} · ${esc(formatDate(g.acquired, g.acquiredRaw, { month: 'short', year: 'numeric' }))}</span>
+        </span>
+      </button></li>`;
+    })
+    .join('');
+}
+
 /* ---------- Library ---------- */
 
 const cmp = (a, b, dir = 1) => {
@@ -277,7 +309,8 @@ function filteredGames() {
         (state.price === 'all' || priceKind(g) === state.price) &&
         (!state.tag || g.app?.tags.includes(state.tag)) &&
         (!state.year || g.acquired?.startsWith(state.year)) &&
-        (!state.month || g.acquired?.startsWith(state.month))
+        (!state.month || g.acquired?.startsWith(state.month)) &&
+        (!state.barely || isBarelyPlayed(g))
     )
     .sort((a, b) => SORTS[state.sort](a, b) || cmp(a.name, b.name));
 }
@@ -344,6 +377,7 @@ function renderActiveFilters() {
   if (state.year) chips.push(['year', `Year ${state.year}`]);
   if (state.month) chips.push(['month', formatDate(`${state.month}-01`, '', { month: 'long', year: 'numeric' })]);
   if (state.tag) chips.push(['tag', `Tag: ${state.tag}`]);
+  if (state.barely) chips.push(['barely', `Played ${UNDER_THRESHOLD}`]);
   $('active-filters').innerHTML = chips
     .map(([key, label]) => `<button type="button" class="chip removable" data-clear="${key}" aria-label="Remove filter ${esc(label)}">${esc(label)}</button>`)
     .join('');
@@ -586,6 +620,7 @@ function setupPrivacy() {
     renderCharts();
     renderBreakdowns();
     renderFame();
+    renderShelf();
     renderLibrary();
     renderHistory();
     if ($('drawer').open) openGame(state.openGame);
@@ -719,9 +754,18 @@ function bindEvents(selectTab) {
     const g = e.target.closest('[data-game]');
     if (g) openGame(Number(g.dataset.game));
   });
-  $('fame').addEventListener('click', (e) => {
-    const g = e.target.closest('[data-game]');
-    if (g) openGame(Number(g.dataset.game));
+  for (const row of [$('fame'), $('shelf')]) {
+    row.addEventListener('click', (e) => {
+      const g = e.target.closest('[data-game]');
+      if (g) openGame(Number(g.dataset.game));
+    });
+  }
+  $('shelf-all').addEventListener('click', () => {
+    state.barely = true;
+    state.sort = 'price-desc'; // same order as the row above
+    $('sort').value = state.sort;
+    refresh();
+    scrollToLibrary();
   });
 
   $('hq').addEventListener('input', (e) => { state.hq = e.target.value; state.hlimit = PAGE; renderHistory(); });
@@ -789,6 +833,7 @@ async function main() {
   renderCharts();
   renderBreakdowns();
   renderFame();
+  renderShelf();
   renderLibrary();
   renderHistoryCats();
   renderHistory();

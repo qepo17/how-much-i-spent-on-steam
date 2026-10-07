@@ -582,6 +582,19 @@ button.rank:hover { background: var(--accent-wash); }
 .fame-price { display: block; font: 700 22px var(--display); }
 .fame-name { display: block; font-size: 13px; color: rgba(255, 255, 255, 0.82); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* ---------- Bought, barely played ---------- */
+.section-head.split { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.shelf-time {
+  position: absolute; left: 12px; top: 12px;
+  padding: 4px 9px; border-radius: 8px;
+  font: 700 12px var(--display);
+  background: rgba(6, 10, 20, 0.78); color: #fff;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+/* Cards sit on dark art in both themes, so the colors are fixed. */
+.shelf-time.never { background: #ff8a7a; color: #1a0703; border: 0; }
+
 /* ---------- Tabs & toolbar ---------- */
 .browser { margin-top: 28px; }
 .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 18px; }
