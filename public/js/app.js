@@ -36,6 +36,7 @@ const ICONS = {
   clock: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
   gamepad: '<path d="M7 8h10a5 5 0 0 1 4.9 6l-.4 1.9a2.6 2.6 0 0 1-4.6 1L15 15H9l-1.9 1.9a2.6 2.6 0 0 1-4.6-1L2.1 14A5 5 0 0 1 7 8z"/><path d="M7 10.5v3M5.5 12h3M15.5 11h.01M17.5 13h.01"/>',
   book: '<path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 20.5A2.5 2.5 0 0 1 7.5 18H19v3H7.5"/>',
+  cafe: '<path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 11h1.5a2.5 2.5 0 0 1 0 5H17M8.5 3.5v2.5M12.5 3.5v2.5"/>',
   movie: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7.5 5v14M16.5 5v14M3 9.5h4.5M3 14.5h4.5M16.5 9.5H21M16.5 14.5H21"/>',
   themePark: '<circle cx="12" cy="10" r="6.5"/><path d="M12 3.5v13M5.5 10h13M7.4 5.4l9.2 9.2M16.6 5.4l-9.2 9.2M8.5 21l3.5-11 3.5 11M6 21h12"/>',
   dinner: '<path d="M7 3v7M4.5 3v4.5a2.5 2.5 0 0 0 5 0V3M7 10v11M18 21V3c-2.5 1.5-3.5 4.5-3.5 8.5H18"/>',
@@ -244,9 +245,9 @@ function renderValue() {
   const s = state.summary;
   const cur = s.currency;
   const activities = activitiesIn(cur);
-  const panel = $('value-panel');
-  panel.hidden = !state.data.hasPlaytime || s.perHour == null || !activities.length;
-  if (panel.hidden) return;
+  const wrap = $('value-wrap');
+  wrap.hidden = !state.data.hasPlaytime || s.perHour == null || !activities.length;
+  if (wrap.hidden) return;
 
   const anchor = pricierThan(s.perHour, cur);
   const top = activities.at(-1);
@@ -256,27 +257,24 @@ function renderValue() {
     if (top.id !== anchor.id) line += ` ${esc(top.name)}, ${esc(times(top.perHour / s.perHour))}.`;
   }
 
-  const rows = [
-    ...activities.map((a) => ({ ...a, icon: a.id, detail: `${money(a.price, cur)} ${a.item}, ${a.hours.toLocaleString()}\u00a0h` })),
-    { you: true, icon: 'gamepad', name: 'Your Steam games', perHour: s.perHour, detail: `${money(Math.round(s.total), cur)} over ${plural(Math.round(s.paidPlayMinutes / 60), 'hour')}` },
-  ].sort((a, b) => a.perHour - b.perHour);
-
   $('value').innerHTML = `
-    <div class="value-lead">
+    <div class="value-you">
+      <p class="value-label">${icon('gamepad')}Your Steam games</p>
       <p class="value-number">${esc(rate(s.perHour, cur))}<span> per hour</span></p>
+      <p class="value-detail">${esc(money(Math.round(s.total), cur))} over ${esc(plural(Math.round(s.paidPlayMinutes / 60), 'hour'))}</p>
       <p class="value-line">${line}</p>
       <p class="value-note">Every hour you play brings it down.</p>
     </div>
-    <ol class="value-ladder">${rows
+    <ul class="value-cards">${activities
       .map(
-        (r) => `<li${r.you ? ' class="you"' : ''}>
-          ${icon(r.icon)}
-          <span class="value-name">${esc(r.name)}<small>${esc(r.detail)}</small></span>
-          <span class="value-rate">${esc(rate(r.perHour, cur))}/h</span>
-          <span class="value-x">${r.you ? 'You' : esc(times(r.perHour / s.perHour))}</span>
+        (a) => `<li class="value-card">
+          <p class="value-label">${icon(a.id)}<span class="value-x">${esc(times(a.perHour / s.perHour))}<small>your rate</small></span></p>
+          <p class="value-name">${esc(a.name)}</p>
+          <p class="value-rate">${esc(rate(a.perHour, cur))}<span>/h</span></p>
+          <p class="value-detail">${esc(money(a.price, cur))} ${esc(a.item)}, ${a.hours.toLocaleString()}\u00a0h</p>
         </li>`
       )
-      .join('')}</ol>`;
+      .join('')}</ul>`;
 }
 
 function renderFame() {

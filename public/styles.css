@@ -547,29 +547,37 @@ button.rank:hover { background: var(--accent-wash); }
 .empty-note { color: var(--muted); font-size: 14px; margin: 0; }
 
 /* ---------- What an hour of fun costs ---------- */
-.span-12 { grid-column: span 12; }
-.value { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 16px 40px; align-items: center; }
-.value-number { margin: 0; font: 700 44px/1.05 var(--display); letter-spacing: -0.02em; overflow-wrap: anywhere; }
-.value-number span { font-size: 18px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
-.value-line { margin: 12px 0 0; font-size: 17px; line-height: 1.45; color: var(--ink-2); }
-.value-note { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
-.value-ladder { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-.value-ladder li {
-  display: grid; grid-template-columns: auto minmax(0, 1fr) auto 52px; gap: 12px; align-items: center;
-  padding: 8px 10px; border-radius: 12px;
+.value { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 16px; }
+.value-you, .value-card {
+  margin: 0; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow);
 }
-.value-ladder li.you { background: var(--accent-wash); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent); }
-.value-name { font-size: 14px; font-weight: 600; min-width: 0; }
-.value-name small { display: block; font-size: 12px; font-weight: 500; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.value-rate { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
-.value-x { font: 700 13px var(--display); color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
-.you .value-x { color: var(--accent); }
-@media (max-width: 760px) {
-  .value { grid-template-columns: minmax(0, 1fr); }
-  .value-number { font-size: 34px; }
-  .value-ladder li { grid-template-columns: auto minmax(0, 1fr) auto 40px; gap: 10px; padding: 8px; }
-  .value-rate { font-size: 13px; }
-  .value-name small { white-space: normal; }
+.value-you {
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 26px;
+  background: linear-gradient(160deg, var(--accent-wash), transparent 70%), var(--surface);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.value-label { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.value-number { margin: 14px 0 0; font: 700 44px/1.05 var(--display); letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.value-number span, .value-rate span { font-size: 15px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+.value-detail { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+.value-line { margin: 18px 0 0; font-size: 17px; line-height: 1.45; color: var(--ink-2); }
+.value-note { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+.value-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.value-card { padding: 18px 18px 16px; }
+.value-card .value-label { justify-content: space-between; align-items: flex-start; }
+.value-x { font: 700 26px/1 var(--display); color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+.value-x small { display: block; margin-top: 3px; font: 500 11px var(--body); color: var(--muted); }
+.value-name { margin: 14px 0 0; font-weight: 600; font-size: 15px; }
+.value-rate { margin: 2px 0 0; font: 700 18px var(--display); font-variant-numeric: tabular-nums; }
+.value-rate span { font-size: 13px; }
+@media (max-width: 1080px) { .value { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 720px) {
+  .value-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .value-card { padding: 14px; }
+  .value-number { font-size: 36px; }
+  .value-x { font-size: 22px; }
 }
 
 /* ---------- Biggest purchases ---------- */

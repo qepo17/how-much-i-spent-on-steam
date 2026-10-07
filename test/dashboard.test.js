@@ -126,7 +126,7 @@ assert.equal(summarize({ games: [{ purchase: {}, playtimeMinutes: 30 }], history
 
 // What an hour of fun costs
 assert.deepEqual(activitiesIn('Rp').map((a) => [a.id, a.perHour]),
-  [['book', 12500], ['movie', 25000], ['themePark', 34400], ['dinner', 66700], ['concert', 333000]]);
+  [['book', 12500], ['movie', 25000], ['cafe', 26700], ['themePark', 34400], ['dinner', 66700], ['concert', 333000]]);
 assert.deepEqual(activitiesIn('¥'), [], 'no price list, no comparison');
 assert.equal(pricierThan(6000, 'Rp').id, 'movie', 'the movies when they cost more');
 assert.equal(pricierThan(6000, 'Rp').ratio, 25000 / 6000);
