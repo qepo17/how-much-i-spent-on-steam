@@ -6,7 +6,6 @@ import { BOM, gamesCsv, historyCsv, priceKind } from './csv.js';
 
 const $ = (id) => document.getElementById(id);
 const PAGE = 120;
-const UNDER_THRESHOLD = `under ${BARELY_PLAYED_MINUTES / 60} h`;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const store = {
@@ -309,25 +308,28 @@ function renderShelf() {
   wrap.hidden = !state.data.hasPlaytime || !games.length;
   if (wrap.hidden) return;
 
+  const h = BARELY_PLAYED_MINUTES / 60;
   const bundled = games.filter((g) => g.price == null).length;
-  let sub = `${plural(games.length, 'game')} you paid for with ${UNDER_THRESHOLD} played`;
-  if (spent) sub += ` · ${money(Math.round(spent), state.summary.currency)} spent`;
-  if (bundled) sub += `, plus ${bundled} from ${bundled === 1 ? 'a bundle' : 'bundles'}`;
-  $('shelf-sub').textContent = sub;
-  $('shelf-all').textContent = `See all ${games.length.toLocaleString()} in library`;
+  const priced = games.length - bundled;
+  const sub = [];
+  if (priced) sub.push(`${money(Math.round(spent), state.summary.currency)} on ${plural(priced, 'game')} you gave less than ${h} hours.`);
+  if (bundled) sub.push(priced ? `${bundled} more came in bundles.` : `${plural(bundled, 'game')} from bundles you gave less than ${h} hours.`);
+  sub.push(`Play one for ${h} hours and it's off the list.`);
+  $('shelf-sub').textContent = sub.join(' ');
+  $('shelf-all').textContent = `See all ${games.length.toLocaleString()} ${games.length === 1 ? 'regret' : 'regrets'}`;
 
   $('shelf').innerHTML = games
     .slice(0, 8)
     .map((g) => {
       const never = !g.playtimeMinutes;
-      const played = never ? 'Never played' : `${hours(g.playtimeMinutes)} played`;
+      const played = never ? 'Never launched' : `Only ${hours(g.playtimeMinutes)}`;
       const price = priceKind(g) === 'bundle' ? 'In a bundle' : priceLabel(g);
       return `<li><button type="button" class="fame-card" data-game="${state.data.games.indexOf(g)}" aria-label="${esc(`${g.name}, ${price}, ${played}`)}">
         ${art(g.app?.art.header, g.name)}
         <span class="shelf-time${never ? ' never' : ''}">${esc(played)}</span>
         <span class="fame-meta">
           <span class="fame-price">${esc(price)}</span>
-          <span class="fame-name">${esc(g.name)} · ${esc(formatDate(g.acquired, g.acquiredRaw, { month: 'short', year: 'numeric' }))}</span>
+          <span class="fame-name">${esc(g.name)} · bought ${esc(formatDate(g.acquired, g.acquiredRaw, { month: 'short', year: 'numeric' }))}</span>
         </span>
       </button></li>`;
     })
@@ -433,7 +435,7 @@ function renderActiveFilters() {
   if (state.year) chips.push(['year', `Year ${state.year}`]);
   if (state.month) chips.push(['month', formatDate(`${state.month}-01`, '', { month: 'long', year: 'numeric' })]);
   if (state.tag) chips.push(['tag', `Tag: ${state.tag}`]);
-  if (state.barely) chips.push(['barely', `Played ${UNDER_THRESHOLD}`]);
+  if (state.barely) chips.push(['barely', `Played under ${BARELY_PLAYED_MINUTES / 60} h`]);
   $('active-filters').innerHTML = chips
     .map(([key, label]) => `<button type="button" class="chip removable" data-clear="${key}" aria-label="Remove filter ${esc(label)}">${esc(label)}</button>`)
     .join('');
