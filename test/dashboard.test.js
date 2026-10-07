@@ -6,6 +6,7 @@ import { normalizeName } from '../src/merge.js';
 import { gamesCsv, historyCsv, toCsv } from '../public/js/csv.js';
 import { money, maskAmounts, totalAsShown, setAmountsHidden } from '../public/js/format.js';
 import { summarize, paymentMethod, purchaseCategory, costPerHour, isBarelyPlayed } from '../public/js/stats.js';
+import { activitiesIn, pricierThan } from '../public/js/activities.js';
 
 // SteamID from the login cookie
 assert.equal(steamIdFromCookie('76561198000000001%7C%7CeyJhbGciOi'), '76561198000000001');
@@ -119,6 +120,18 @@ assert.deepEqual(s.ytd, { year: 2025, amount: 300, previous: 300 });
 assert.deepEqual(s.payments.map((p) => p.name), ['GoPay', 'Wallet + Visa']);
 assert.equal(s.avgPrice, 108999);
 assert.deepEqual(s.tags.map((t) => t.name), ['Action', 'Roguelike']);
+assert.equal(s.paidPlayMinutes, 600, 'only games you paid for');
+assert.equal(s.perHour, 60, 'Rp 600 over 10 h');
+assert.equal(summarize({ games: [{ purchase: {}, playtimeMinutes: 30 }], history }).perHour, null, 'under an hour is too noisy');
+
+// What an hour of fun costs
+assert.deepEqual(activitiesIn('Rp').map((a) => [a.id, a.perHour]),
+  [['book', 12500], ['movie', 25000], ['themePark', 34400], ['dinner', 66700], ['concert', 333000]]);
+assert.deepEqual(activitiesIn('¥'), [], 'no price list, no comparison');
+assert.equal(pricierThan(6000, 'Rp').id, 'movie', 'the movies when they cost more');
+assert.equal(pricierThan(6000, 'Rp').ratio, 25000 / 6000);
+assert.equal(pricierThan(30000, 'Rp').id, 'themePark', 'else the next one up');
+assert.equal(pricierThan(500000, 'Rp'), null);
 
 assert.equal(purchaseCategory({ type: '12 Market Transactions' }), 'market');
 assert.equal(purchaseCategory({ type: 'Gift Purchase' }), 'gift');

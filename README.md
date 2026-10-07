@@ -15,7 +15,7 @@ It runs on your machine and only talks to Steam. Nothing is uploaded anywhere.
 - **Library**: cover-art grid or table view, with search (names, bundles, developers, tags), price and source filters, and sorting. Click a game for its receipt, tags, release date and store links.
 - **Purchase history**: every transaction (games, gifts, in-game, Market, refunds), filterable, including the ones that didn't match a game
 - **Export**: CSV of the current view or everything, for both the library and the purchase history, plus a full JSON backup. CSVs open cleanly in Excel, Numbers and Google Sheets.
-- **Playtime** (optional): hours played, last played, cost per hour, and **Bought, barely played**: the games you paid for with under 3 hours on the clock. Needs a Steam Web API key.
+- **Playtime** (optional): hours played, last played, and cost per hour, next to what an hour of a movie, a concert or dinner out costs. Plus **Bought, barely played**: the games you paid for with under 3 hours on the clock. Needs a Steam Web API key.
 - **Hide amounts**: the eye button (or press `H`) masks every amount on screen as `Rp •••••`, for screenshots, streaming or sharing your screen. Exports still contain real values.
 - Dark and light themes, works on phones
 
@@ -103,6 +103,7 @@ src/enrich.js       matches licenses to store apps (art, tags, playtime)
 public/             the dashboard (plain HTML, CSS and ES modules, no build step)
 public/js/csv.js    CSV columns, shared by the dashboard and export.js
 public/js/stats.js  totals and breakdowns behind the charts
+public/js/activities.js  what an hour of other fun costs, per currency
 ```
 
 ---

@@ -546,6 +546,32 @@ button.rank:hover { background: var(--accent-wash); }
 .rank .bar { height: 100%; border-radius: 3px; background: var(--series-1); transform-origin: left; animation: widen 0.9s var(--ease) both; animation-delay: calc(var(--i) * 50ms); }
 .empty-note { color: var(--muted); font-size: 14px; margin: 0; }
 
+/* ---------- What an hour of fun costs ---------- */
+.span-12 { grid-column: span 12; }
+.value { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 16px 40px; align-items: center; }
+.value-number { margin: 0; font: 700 44px/1.05 var(--display); letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.value-number span { font-size: 18px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+.value-line { margin: 12px 0 0; font-size: 17px; line-height: 1.45; color: var(--ink-2); }
+.value-note { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+.value-ladder { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.value-ladder li {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto 52px; gap: 12px; align-items: center;
+  padding: 8px 10px; border-radius: 12px;
+}
+.value-ladder li.you { background: var(--accent-wash); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent); }
+.value-name { font-size: 14px; font-weight: 600; min-width: 0; }
+.value-name small { display: block; font-size: 12px; font-weight: 500; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.value-rate { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+.value-x { font: 700 13px var(--display); color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.you .value-x { color: var(--accent); }
+@media (max-width: 760px) {
+  .value { grid-template-columns: minmax(0, 1fr); }
+  .value-number { font-size: 34px; }
+  .value-ladder li { grid-template-columns: auto minmax(0, 1fr) auto 40px; gap: 10px; padding: 8px; }
+  .value-rate { font-size: 13px; }
+  .value-name small { white-space: normal; }
+}
+
 /* ---------- Biggest purchases ---------- */
 .fame { margin: 36px 0 8px; }
 .section-head { margin-bottom: 16px; }

@@ -93,6 +93,8 @@ export function summarize({ games = [], history = [] }, today = new Date()) {
   const barelyPlayed = games
     .filter(isBarelyPlayed)
     .sort((a, b) => (b.price ?? -1) - (a.price ?? -1) || (b.acquired ?? '').localeCompare(a.acquired ?? ''));
+  // Free-to-play hours didn't cost anything, so they don't water down the rate.
+  const paidPlayMinutes = games.filter((g) => g.purchase).reduce((s, g) => s + (g.playtimeMinutes ?? 0), 0);
 
   return {
     currency,
@@ -117,6 +119,8 @@ export function summarize({ games = [], history = [] }, today = new Date()) {
     sources: countBy(games.map((g) => g.source ?? 'Unknown')),
     tags: countBy(games.flatMap((g) => g.app?.tags ?? [])),
     playMinutes: games.reduce((s, g) => s + (g.playtimeMinutes ?? 0), 0),
+    paidPlayMinutes,
+    perHour: paidPlayMinutes >= 60 ? total / (paidPlayMinutes / 60) : null,
     barelyPlayed: {
       games: barelyPlayed,
       spent: barelyPlayed.filter((g) => g.price != null && g.currency === currency).reduce((s, g) => s + g.price, 0),
